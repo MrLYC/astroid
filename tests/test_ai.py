@@ -22,6 +22,7 @@ from astroid.ai.provider import MockAIInferenceProvider
 from astroid.ai.schema import AIInferenceCandidate, AIInferenceResponse, response_to_nodes
 from astroid.brain.helpers import register_ai_brains, register_all_brains
 from astroid.exceptions import InferenceError
+from astroid.manager import AstroidManager
 
 
 class RecordingObserver:
@@ -40,6 +41,29 @@ class CountingProvider:
     def infer(self, request: AIInferenceRequest) -> AIInferenceResponse:
         self.calls += 1
         return self._response
+
+
+@pytest.fixture(autouse=True)
+def restore_ai_manager_state():
+    manager = astroid.MANAGER
+    saved_provider = manager.ai_provider
+    saved_enabled = manager.ai_inference_enabled
+    saved_timeout = manager.ai_timeout_ms
+    saved_max_candidates = manager.ai_max_candidates
+    saved_budget = manager.ai_budget_per_module
+    saved_allowed = manager.ai_allowed_scenarios
+    saved_observer = manager.ai_observer
+    saved_brains_registered = manager.ai_brains_registered
+    yield
+    manager.clear_cache()
+    AstroidManager.brain["ai_provider"] = saved_provider
+    AstroidManager.brain["ai_inference_enabled"] = saved_enabled
+    AstroidManager.brain["ai_timeout_ms"] = saved_timeout
+    AstroidManager.brain["ai_max_candidates"] = saved_max_candidates
+    AstroidManager.brain["ai_budget_per_module"] = saved_budget
+    AstroidManager.brain["ai_allowed_scenarios"] = saved_allowed
+    AstroidManager.brain["ai_observer"] = saved_observer
+    AstroidManager.brain["ai_brains_registered"] = saved_brains_registered
 
 
 def _build_ai_manager(provider: object, observer: RecordingObserver | None = None):
