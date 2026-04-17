@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import traceback
 from collections.abc import Iterator
 from types import BuiltinFunctionType, FunctionType, MethodType
 
@@ -154,6 +155,7 @@ def _maybe_infer_with_ai(
             reason=type(exc).__name__,
             scenario=request.scenario,
             unexpected=True,
+            traceback=traceback.format_exc(),
         )
         return None
 

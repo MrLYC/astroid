@@ -7,7 +7,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from astroid import nodes
-from astroid.context import InferenceContext
 
 _MAX_SNIPPET_SIZE = 240
 _MAX_LOCAL_CONTEXT_ITEMS = 8
