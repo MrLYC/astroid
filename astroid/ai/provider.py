@@ -12,14 +12,17 @@ from astroid.ai.schema import AIInferenceResponse
 
 
 class AIInferenceProvider(Protocol):
-    def infer(self, request: AIInferenceRequest) -> AIInferenceResponse: ...  # pragma: no cover
+    def infer(
+        self, request: AIInferenceRequest, *, timeout_ms: int
+    ) -> AIInferenceResponse: ...  # pragma: no cover
 
 
 class NullAIInferenceProvider:
     """Default provider that never returns AI candidates."""
 
-    def infer(self, request: AIInferenceRequest) -> AIInferenceResponse:
+    def infer(self, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
         del request
+        del timeout_ms
         return AIInferenceResponse()
 
 
@@ -31,16 +34,16 @@ class MockAIInferenceProvider:
         responses: Mapping[
             str | tuple[str, str], AIInferenceResponse | Exception
         ] | None = None,
-        callback: Callable[[AIInferenceRequest], AIInferenceResponse] | None = None,
+        callback: Callable[[AIInferenceRequest, int], AIInferenceResponse] | None = None,
         default_response: AIInferenceResponse | None = None,
     ) -> None:
         self._responses = dict(responses or ())
         self._callback = callback
         self._default_response = default_response or AIInferenceResponse()
 
-    def infer(self, request: AIInferenceRequest) -> AIInferenceResponse:
+    def infer(self, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
         if self._callback is not None:
-            return self._callback(request)
+            return self._callback(request, timeout_ms)
 
         lookup_keys = [
             (request.scenario, request.annotation_repr or request.call_repr or ""),

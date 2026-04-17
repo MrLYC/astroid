@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import textwrap
+import time
 
 import pytest
 
@@ -38,8 +39,10 @@ class CountingProvider:
         self.calls = 0
         self._response = response
 
-    def infer(self, request: AIInferenceRequest) -> AIInferenceResponse:
+    def infer(self, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
         self.calls += 1
+        del request
+        del timeout_ms
         return self._response
 
 
@@ -66,7 +69,9 @@ def preserve_ai_manager_state():
     AstroidManager.brain["ai_brains_registered"] = saved_brains_registered
 
 
-def _build_ai_manager(provider: object, observer: RecordingObserver | None = None):
+def _build_ai_manager(
+    provider: object, observer: RecordingObserver | None = None
+) -> AstroidManager:
     manager = test_utils.brainless_manager()
     register_all_brains(manager)
     manager.bootstrap()
@@ -188,7 +193,7 @@ def test_mock_provider_matches_by_scenario_and_annotation() -> None:
         expected_output_kinds=("instance",),
     )
 
-    response = provider.infer(request)
+    response = provider.infer(request, timeout_ms=10)
 
     assert response.candidates[0].name == "str"
 
@@ -258,6 +263,56 @@ def test_ai_typing_cast_fallback_and_cache_hit() -> None:
     assert second_inferred[0].name == "str"
     assert provider.calls == 1
     assert any(event == "ai_cache_hit" for event, _payload in observer.events)
+
+
+def test_ai_typing_cast_timeout_fallback() -> None:
+    class SlowProvider:
+        def infer(self, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
+            del request
+            time.sleep((timeout_ms / 1000) + 0.05)
+            return AIInferenceResponse(
+                (AIInferenceCandidate(kind="instance", module="builtins", name="str"),)
+            )
+
+    observer = RecordingObserver()
+    manager = _build_ai_manager(SlowProvider(), observer)
+    manager.ai_timeout_ms = 1
+    module = manager.ast_from_string(
+        textwrap.dedent(
+            """
+            from typing import cast
+            result = cast(str, missing)
+            """
+        ),
+        modname="typing_timeout",
+    )
+
+    started = time.monotonic()
+    with pytest.raises(InferenceError):
+        module.locals["result"][0].inferred()
+    elapsed = time.monotonic() - started
+
+    assert elapsed < 0.05
+    assert (
+        "ai_fallback",
+        {"reason": "AIInferenceTimeoutError", "scenario": "typing.cast"},
+    ) in observer.events
+
+
+def test_register_ai_brains_is_idempotent() -> None:
+    manager = test_utils.brainless_manager()
+    register_all_brains(manager)
+    manager.bootstrap()
+
+    register_ai_brains(manager)
+    call_transforms = len(manager._transform.transforms[nodes.Call])
+    unknown_transforms = len(manager._transform.transforms[nodes.Unknown])
+
+    register_ai_brains(manager)
+
+    assert manager.ai_brains_registered
+    assert len(manager._transform.transforms[nodes.Call]) == call_transforms
+    assert len(manager._transform.transforms[nodes.Unknown]) == unknown_transforms
 
 
 def test_ai_dataclass_annotation_fallback() -> None:

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import traceback
 from collections.abc import Iterator
+from threading import Thread
 from types import BuiltinFunctionType, FunctionType, MethodType
 
 from astroid import bases, context, nodes
@@ -14,7 +15,12 @@ from astroid.ai.bridge import (
     build_dataclass_attribute_request,
     build_typing_cast_request,
 )
-from astroid.ai.exceptions import AIInferenceError, AIProviderError, AIProviderUnavailableError
+from astroid.ai.exceptions import (
+    AIInferenceError,
+    AIInferenceTimeoutError,
+    AIProviderError,
+    AIProviderUnavailableError,
+)
 from astroid.ai.policy import consume_budget, observe, policy_from_manager
 from astroid.ai.provider import NullAIInferenceProvider
 from astroid.ai.schema import AIInferenceResponse, response_to_nodes
@@ -27,6 +33,9 @@ from astroid.util import Uninferable, UninferableBase
 
 
 def register(manager: AstroidManager) -> None:
+    if manager.ai_brains_registered:
+        return
+
     manager.register_transform(
         nodes.Call,
         inference_tip(_infer_typing_cast_with_ai(manager)),
@@ -144,7 +153,7 @@ def _maybe_infer_with_ai(
 
     try:
         provider = _resolve_provider(manager)
-        response = provider.infer(request)
+        response = _infer_with_timeout(provider, request, timeout_ms=policy.timeout_ms)
     except AIInferenceError as exc:
         observe(manager, "ai_fallback", reason=type(exc).__name__, scenario=request.scenario)
         return None
@@ -207,6 +216,34 @@ def _is_provider_factory(provider_or_factory) -> bool:
     return isinstance(
         provider_or_factory, (BuiltinFunctionType, FunctionType, MethodType, type)
     )
+
+
+def _infer_with_timeout(provider, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
+    if timeout_ms <= 0:
+        return provider.infer(request, timeout_ms=timeout_ms)
+
+    response: AIInferenceResponse | None = None
+    error: Exception | None = None
+
+    def invoke_provider() -> None:
+        nonlocal response, error
+        try:
+            response = provider.infer(request, timeout_ms=timeout_ms)
+        except Exception as exc:  # pylint: disable=broad-except
+            error = exc
+
+    thread = Thread(target=invoke_provider, daemon=True)
+    thread.start()
+    thread.join(timeout_ms / 1000)
+    if thread.is_alive():
+        raise AIInferenceTimeoutError(
+            f"AI inference timed out after {timeout_ms}ms for {request.scenario}"
+        )
+    if error is not None:
+        raise error
+    if response is None:
+        raise AIProviderError("AI inference provider returned no response")
+    return response
 
 
 def _has_inferable_results(results: tuple[InferenceResult, ...] | list[InferenceResult]) -> bool:
