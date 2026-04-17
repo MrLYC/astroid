@@ -44,7 +44,7 @@ class CountingProvider:
 
 
 @pytest.fixture(autouse=True)
-def restore_ai_manager_state():
+def reset_ai_manager_state():
     manager = astroid.MANAGER
     saved_provider = manager.ai_provider
     saved_enabled = manager.ai_inference_enabled

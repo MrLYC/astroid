@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from types import BuiltinFunctionType, FunctionType, MethodType
 
 from astroid import bases, context, nodes
 from astroid.ai.bridge import (
@@ -147,7 +148,13 @@ def _maybe_infer_with_ai(
         observe(manager, "ai_fallback", reason=type(exc).__name__, scenario=request.scenario)
         return None
     except Exception as exc:  # pylint: disable=broad-except
-        observe(manager, "ai_fallback", reason=type(exc).__name__, scenario=request.scenario)
+        observe(
+            manager,
+            "ai_fallback",
+            reason=type(exc).__name__,
+            scenario=request.scenario,
+            unexpected=True,
+        )
         return None
 
     manager.ai_cache.set(request, response)
@@ -181,7 +188,7 @@ def _response_to_nodes(
 
 def _resolve_provider(manager: AstroidManager):
     provider_or_factory = manager.ai_provider
-    if callable(provider_or_factory) and not hasattr(provider_or_factory, "infer"):
+    if _is_provider_factory(provider_or_factory):
         provider = provider_or_factory()
     else:
         provider = provider_or_factory
@@ -192,6 +199,12 @@ def _resolve_provider(manager: AstroidManager):
     if isinstance(provider, NullAIInferenceProvider):
         raise AIProviderUnavailableError("null AI inference provider configured")
     return provider
+
+
+def _is_provider_factory(provider_or_factory) -> bool:
+    return isinstance(
+        provider_or_factory, (BuiltinFunctionType, FunctionType, MethodType, type)
+    )
 
 
 def _has_inferable_results(results: tuple[InferenceResult, ...] | list[InferenceResult]) -> bool:

@@ -60,7 +60,5 @@ def observe(manager: AstroidManager, event: str, **payload: Any) -> None:
         return
     if hasattr(observer, "record"):
         observer.record(event, **payload)
-        return
-    if callable(observer):
-        callable_observer = observer
-        callable_observer(event, **payload)
+    elif callable(observer):
+        observer(event, **payload)

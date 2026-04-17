@@ -10,7 +10,7 @@ class AIInferenceError(Exception):
 
 
 class AIInferenceTimeoutError(AIInferenceError):
-    """Raised when an AI inference request exceeds its budget."""
+    """Raised when an AI inference request times out."""
 
 
 class AIProviderUnavailableError(AIInferenceError):
