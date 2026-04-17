@@ -16,6 +16,7 @@ import pytest
 
 import astroid
 from astroid import manager, nodes, test_utils
+from astroid.ai.provider import NullAIInferenceProvider
 from astroid.const import IS_JYTHON, IS_PYPY, PY312_PLUS
 from astroid.exceptions import (
     AstroidBuildingError,
@@ -92,6 +93,16 @@ class AstroidManagerTest(resources.SysPathSetup, unittest.TestCase):
         self.assertEqual(ast.name, "time")
         self.assertIn("time", self.manager.astroid_cache)
         self.assertEqual(ast.pure_python, False)
+
+    def test_ai_configuration_defaults(self) -> None:
+        self.assertFalse(self.manager.ai_inference_enabled)
+        self.assertIsInstance(self.manager.ai_provider, NullAIInferenceProvider)
+        self.assertEqual(self.manager.ai_timeout_ms, 250)
+        self.assertEqual(self.manager.ai_max_candidates, 3)
+        self.assertEqual(self.manager.ai_budget_per_module, 0)
+        self.assertEqual(self.manager.ai_allowed_scenarios, frozenset())
+        self.assertIsNone(self.manager.ai_observer)
+        self.assertFalse(self.manager.ai_brains_registered)
 
     def test_ast_from_module_name_astro_builder_exception(self) -> None:
         self.assertRaises(

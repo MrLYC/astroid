@@ -71,7 +71,8 @@ def dataclass_transform(node: nodes.ClassDef) -> nodes.ClassDef | None:
             col_offset=assign_node.col_offset,
             parent=assign_node,
         )
-        rhs_node = AstroidManager().visit_transforms(rhs_node)
+        manager = getattr(node.root(), "_manager", AstroidManager())
+        rhs_node = manager.visit_transforms(rhs_node)
         node.instance_attrs[name] = [rhs_node]
 
     if not _check_generate_dataclass_init(node):

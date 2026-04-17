@@ -45,6 +45,16 @@ class AstroidManagerBrain(TypedDict):
     max_inferable_values: int
     extension_package_whitelist: set[str]
     _transform: transforms.TransformVisitor
+    ai_inference_enabled: bool
+    ai_provider: Any
+    ai_timeout_ms: int
+    ai_max_candidates: int
+    ai_budget_per_module: int
+    ai_allowed_scenarios: frozenset[str]
+    ai_observer: Any
+    ai_cache: Any
+    ai_budget_counts: dict[str, int]
+    ai_brains_registered: bool
 
 
 # pylint: disable=consider-alternative-union-syntax

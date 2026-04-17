@@ -136,6 +136,12 @@ def register_all_brains(manager: AstroidManager) -> None:
     brain_uuid.register(manager)
 
 
+def register_ai_brains(manager: AstroidManager) -> None:
+    from astroid.ai import register as register_ai  # pylint: disable=import-outside-toplevel
+
+    register_ai(manager)
+
+
 def is_class_var(node: NodeNG) -> bool:
     """Return True if node is a ClassVar, with or without subscripting."""
     try:

@@ -248,3 +248,30 @@ return an instance of :class:`astroid.Module`, otherwise it must raise
         ''')
 
     MANAGER.register_failed_import_hook(failed_custom_import)
+
+
+Opt-in AI inference extensions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``astroid`` also exposes an opt-in AI inference layer for narrow fallback cases
+that are registered through the same transform system described above. The AI
+extension is disabled by default and is not loaded by ``register_all_brains``.
+
+To enable it explicitly, configure a manager instance and register the extra
+brains yourself::
+
+    from astroid.ai import MockAIInferenceProvider
+    from astroid.brain.helpers import register_ai_brains
+
+    manager = astroid.MANAGER
+    manager.ai_inference_enabled = True
+    manager.ai_provider = MockAIInferenceProvider(...)
+    manager.ai_budget_per_module = 4
+    manager.ai_allowed_scenarios = frozenset({"typing.cast", "dataclasses.annotation"})
+    register_ai_brains(manager)
+
+The AI integration only runs inside explicitly registered transforms and
+inference tips. It uses its own cache (``manager.ai_cache``), supports custom
+observers through ``manager.ai_observer``, and falls back to normal astroid
+behaviour when the provider is disabled, times out, returns low-confidence
+candidates, or produces invalid schema data.
