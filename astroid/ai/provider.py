@@ -21,7 +21,6 @@ class NullAIInferenceProvider:
     """Default provider that never returns AI candidates."""
 
     def infer(self, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
-        _ = request, timeout_ms
         return AIInferenceResponse()
 
 

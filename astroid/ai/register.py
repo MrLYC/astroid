@@ -219,6 +219,11 @@ def _is_provider_factory(provider_or_factory) -> bool:
 
 
 def _infer_with_timeout(provider, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
+    """Call a provider with best-effort timeout enforcement.
+
+    Providers are still expected to honor ``timeout_ms`` themselves. The thread-based
+    wrapper exists to preserve fallback semantics when a provider ignores the contract.
+    """
     if timeout_ms <= 0:
         return provider.infer(request, timeout_ms=timeout_ms)
 
