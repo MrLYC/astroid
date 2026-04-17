@@ -224,13 +224,15 @@ def _infer_with_timeout(provider, request: AIInferenceRequest, *, timeout_ms: in
 
     response: AIInferenceResponse | None = None
     error: Exception | None = None
+    error_traceback: str | None = None
 
     def invoke_provider() -> None:
-        nonlocal response, error
+        nonlocal response, error, error_traceback
         try:
             response = provider.infer(request, timeout_ms=timeout_ms)
         except Exception as exc:  # pylint: disable=broad-except
             error = exc
+            error_traceback = traceback.format_exc()
 
     thread = Thread(target=invoke_provider, daemon=True)
     thread.start()
@@ -240,7 +242,12 @@ def _infer_with_timeout(provider, request: AIInferenceRequest, *, timeout_ms: in
             f"AI inference timed out after {timeout_ms}ms for {request.scenario}"
         )
     if error is not None:
-        raise error
+        if isinstance(error, AIInferenceError):
+            raise error
+        error_message = f"AI inference provider raised {type(error).__name__}: {error}"
+        if error_traceback is not None:
+            error_message = f"{error_message}\n{error_traceback}"
+        raise AIProviderError(error_message) from error
     if response is None:
         raise AIProviderError("AI inference provider returned no response")
     return response

@@ -41,8 +41,7 @@ class CountingProvider:
 
     def infer(self, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
         self.calls += 1
-        del request
-        del timeout_ms
+        _ = request, timeout_ms
         return self._response
 
 
@@ -268,7 +267,7 @@ def test_ai_typing_cast_fallback_and_cache_hit() -> None:
 def test_ai_typing_cast_timeout_fallback() -> None:
     class SlowProvider:
         def infer(self, request: AIInferenceRequest, *, timeout_ms: int) -> AIInferenceResponse:
-            del request
+            _ = request
             time.sleep((timeout_ms / 1000) + 0.05)
             return AIInferenceResponse(
                 (AIInferenceCandidate(kind="instance", module="builtins", name="str"),)
