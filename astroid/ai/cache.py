@@ -28,7 +28,6 @@ class AIInferenceCache:
             request.scenario,
             request.node_kind,
             request.source_snippet,
-            request.module_name,
             request.call_repr,
             request.annotation_repr,
             request.local_context,

@@ -161,6 +161,7 @@ class AstroidBuilder(raw_building.InspectBuilder):
     ) -> nodes.Module:
         """Handles encoding and delayed nodes after a module has been built."""
         module.file_encoding = encoding
+        module._manager = self._manager  # type: ignore[attr-defined]
         self._manager.cache_module(module)
         # post tree building steps after we stored the module in the cache:
         for from_node, global_names in builder._import_from_nodes:
