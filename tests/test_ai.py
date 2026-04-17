@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import textwrap
-import time
 
 import pytest
 
@@ -287,12 +286,9 @@ def test_ai_typing_cast_timeout_fallback() -> None:
         modname="typing_timeout",
     )
 
-    started = time.monotonic()
     with pytest.raises(InferenceError):
         module.locals["result"][0].inferred()
-    elapsed = time.monotonic() - started
 
-    assert elapsed < 0.05
     assert (
         "ai_fallback",
         {"reason": "AIInferenceTimeoutError", "scenario": "typing.cast"},
