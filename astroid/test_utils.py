@@ -14,9 +14,9 @@ from collections.abc import Callable
 
 import pytest
 
+from astroid import manager, nodes, transforms
 from astroid.ai.cache import AIInferenceCache
 from astroid.ai.provider import NullAIInferenceProvider
-from astroid import manager, nodes, transforms
 
 
 def require_version(minver: str = "0.0.0", maxver: str = "4.0.0") -> Callable:

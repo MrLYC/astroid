@@ -4,13 +4,19 @@
 
 from __future__ import annotations
 
+import textwrap
+
 import pytest
 
 import astroid
 from astroid import nodes, test_utils
 from astroid.ai.bridge import AIInferenceRequest, build_typing_cast_request
 from astroid.ai.cache import AIInferenceCache
-from astroid.ai.exceptions import AIInferenceSchemaError, AIInferenceTimeoutError
+from astroid.ai.exceptions import (
+    AIInferenceLowConfidenceError,
+    AIInferenceSchemaError,
+    AIInferenceTimeoutError,
+)
 from astroid.ai.policy import consume_budget, policy_from_manager
 from astroid.ai.provider import MockAIInferenceProvider
 from astroid.ai.schema import AIInferenceCandidate, AIInferenceResponse, response_to_nodes
@@ -114,7 +120,7 @@ def test_response_to_nodes_rejects_low_confidence() -> None:
         (AIInferenceCandidate(kind="instance", module="builtins", name="str", confidence=0.2),)
     )
 
-    with pytest.raises(Exception):
+    with pytest.raises(AIInferenceLowConfidenceError):
         response_to_nodes(
             response,
             manager=manager,
@@ -179,10 +185,12 @@ def test_ai_typing_cast_requires_explicit_registration() -> None:
     manager.ai_allowed_scenarios = frozenset({"typing.cast"})
 
     module = manager.ast_from_string(
-        """
-        from typing import cast
-        result = cast(str, missing)
-        """,
+        textwrap.dedent(
+            """
+            from typing import cast
+            result = cast(str, missing)
+            """
+        ),
         modname="typing_no_ai",
     )
 
@@ -199,17 +207,21 @@ def test_ai_typing_cast_fallback_and_cache_hit() -> None:
     manager = _build_ai_manager(provider, observer)
 
     first_module = manager.ast_from_string(
-        """
-        from typing import cast
-        result = cast(str, missing)
-        """,
+        textwrap.dedent(
+            """
+            from typing import cast
+            result = cast(str, missing)
+            """
+        ),
         modname="typing_first",
     )
     second_module = manager.ast_from_string(
-        """
-        from typing import cast
-        result = cast(str, missing)
-        """,
+        textwrap.dedent(
+            """
+            from typing import cast
+            result = cast(str, missing)
+            """
+        ),
         modname="typing_second",
     )
 
@@ -235,15 +247,17 @@ def test_ai_dataclass_annotation_fallback() -> None:
         )
     )
     module = manager.ast_from_string(
-        """
-        from dataclasses import dataclass
+        textwrap.dedent(
+            """
+            from dataclasses import dataclass
 
-        @dataclass
-        class Example:
-            name: UnknownType
+            @dataclass
+            class Example:
+                name: UnknownType
 
-        result = Example(1).name
-        """,
+            result = Example(1).name
+            """
+        ),
         modname="dataclass_ai_success",
     )
 
@@ -281,18 +295,20 @@ def test_ai_dataclass_annotation_fallback() -> None:
 def test_ai_dataclass_annotation_failures_fallback_safely(provider: object) -> None:
     manager = _build_ai_manager(provider)
     module = manager.ast_from_string(
-        """
-        from dataclasses import dataclass
+        textwrap.dedent(
+            """
+            from dataclasses import dataclass
 
-        @dataclass
-        class Example:
-            name: UnknownType
+            @dataclass
+            class Example:
+                name: UnknownType
 
-        result = Example(1).name
-        """,
+            result = Example(1).name
+            """
+        ),
         modname="dataclass_ai_fallback",
     )
 
     inferred = module.locals["result"][0].inferred()
 
-    assert inferred == [nodes.Uninferable]
+    assert inferred == [astroid.util.Uninferable]

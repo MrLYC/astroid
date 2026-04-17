@@ -5,15 +5,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from astroid import nodes
+from astroid.ai.exceptions import AIInferenceLowConfidenceError, AIInferenceSchemaError
 from astroid.exceptions import AttributeInferenceError, InferenceError
 from astroid.typing import InferenceResult
 from astroid.util import Uninferable
-
-from astroid.ai.exceptions import AIInferenceLowConfidenceError, AIInferenceSchemaError
 
 if TYPE_CHECKING:
     from astroid.manager import AstroidManager

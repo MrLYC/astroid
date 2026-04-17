@@ -6,10 +6,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from astroid.ai.bridge import AIInferenceRequest
-from astroid.manager import AstroidManager
+
+if TYPE_CHECKING:
+    from astroid.manager import AstroidManager
 
 _MIN_CONFIDENCE = 0.5
 

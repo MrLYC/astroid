@@ -16,9 +16,9 @@ import zipimport
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, ClassVar
 
+from astroid import nodes
 from astroid.ai.cache import AIInferenceCache
 from astroid.ai.provider import NullAIInferenceProvider
-from astroid import nodes
 from astroid.builder import AstroidBuilder, build_namespace_package_module
 from astroid.context import InferenceContext, _invalidate_cache
 from astroid.exceptions import AstroidBuildingError, AstroidImportError

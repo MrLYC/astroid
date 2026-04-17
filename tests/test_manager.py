@@ -15,8 +15,8 @@ from unittest import mock
 import pytest
 
 import astroid
-from astroid.ai.provider import NullAIInferenceProvider
 from astroid import manager, nodes, test_utils
+from astroid.ai.provider import NullAIInferenceProvider
 from astroid.const import IS_JYTHON, IS_PYPY, PY312_PLUS
 from astroid.exceptions import (
     AstroidBuildingError,
