@@ -16,6 +16,8 @@ import zipimport
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, ClassVar
 
+from astroid.ai.cache import AIInferenceCache
+from astroid.ai.provider import NullAIInferenceProvider
 from astroid import nodes
 from astroid.builder import AstroidBuilder, build_namespace_package_module
 from astroid.context import InferenceContext, _invalidate_cache
@@ -65,6 +67,16 @@ class AstroidManager:
         "module_denylist": set(),
         "_transform": TransformVisitor(),
         "prefer_stubs": False,
+        "ai_inference_enabled": False,
+        "ai_provider": NullAIInferenceProvider(),
+        "ai_timeout_ms": 250,
+        "ai_max_candidates": 3,
+        "ai_budget_per_module": 0,
+        "ai_allowed_scenarios": frozenset(),
+        "ai_observer": None,
+        "ai_cache": AIInferenceCache(),
+        "ai_budget_counts": {},
+        "ai_brains_registered": False,
     }
 
     def __init__(self) -> None:
@@ -123,6 +135,86 @@ class AstroidManager:
     @prefer_stubs.setter
     def prefer_stubs(self, value: bool) -> None:
         AstroidManager.brain["prefer_stubs"] = value
+
+    @property
+    def ai_inference_enabled(self) -> bool:
+        return AstroidManager.brain["ai_inference_enabled"]
+
+    @ai_inference_enabled.setter
+    def ai_inference_enabled(self, value: bool) -> None:
+        AstroidManager.brain["ai_inference_enabled"] = value
+
+    @property
+    def ai_provider(self):
+        return AstroidManager.brain["ai_provider"]
+
+    @ai_provider.setter
+    def ai_provider(self, value) -> None:
+        AstroidManager.brain["ai_provider"] = value
+
+    @property
+    def ai_timeout_ms(self) -> int:
+        return AstroidManager.brain["ai_timeout_ms"]
+
+    @ai_timeout_ms.setter
+    def ai_timeout_ms(self, value: int) -> None:
+        AstroidManager.brain["ai_timeout_ms"] = value
+
+    @property
+    def ai_max_candidates(self) -> int:
+        return AstroidManager.brain["ai_max_candidates"]
+
+    @ai_max_candidates.setter
+    def ai_max_candidates(self, value: int) -> None:
+        AstroidManager.brain["ai_max_candidates"] = value
+
+    @property
+    def ai_budget_per_module(self) -> int:
+        return AstroidManager.brain["ai_budget_per_module"]
+
+    @ai_budget_per_module.setter
+    def ai_budget_per_module(self, value: int) -> None:
+        AstroidManager.brain["ai_budget_per_module"] = value
+
+    @property
+    def ai_allowed_scenarios(self) -> frozenset[str]:
+        return AstroidManager.brain["ai_allowed_scenarios"]
+
+    @ai_allowed_scenarios.setter
+    def ai_allowed_scenarios(self, value: frozenset[str] | set[str] | tuple[str, ...]) -> None:
+        AstroidManager.brain["ai_allowed_scenarios"] = frozenset(value)
+
+    @property
+    def ai_observer(self):
+        return AstroidManager.brain["ai_observer"]
+
+    @ai_observer.setter
+    def ai_observer(self, value) -> None:
+        AstroidManager.brain["ai_observer"] = value
+
+    @property
+    def ai_cache(self) -> AIInferenceCache:
+        return AstroidManager.brain["ai_cache"]
+
+    @ai_cache.setter
+    def ai_cache(self, value: AIInferenceCache) -> None:
+        AstroidManager.brain["ai_cache"] = value
+
+    @property
+    def ai_budget_counts(self) -> dict[str, int]:
+        return AstroidManager.brain["ai_budget_counts"]
+
+    @ai_budget_counts.setter
+    def ai_budget_counts(self, value: dict[str, int]) -> None:
+        AstroidManager.brain["ai_budget_counts"] = value
+
+    @property
+    def ai_brains_registered(self) -> bool:
+        return AstroidManager.brain["ai_brains_registered"]
+
+    @ai_brains_registered.setter
+    def ai_brains_registered(self, value: bool) -> None:
+        AstroidManager.brain["ai_brains_registered"] = value
 
     def visit_transforms(self, node: nodes.NodeNG) -> InferenceResult:
         """Visit the transforms and apply them to the given *node*."""
@@ -452,6 +544,9 @@ class AstroidManager:
 
         self.astroid_cache.clear()
         self._mod_file_cache.clear()
+        self.ai_cache.clear()
+        self.ai_budget_counts.clear()
+        self.ai_brains_registered = False
 
         # NB: not a new TransformVisitor()
         AstroidManager.brain["_transform"].transforms = collections.defaultdict(list)

@@ -14,6 +14,8 @@ from collections.abc import Callable
 
 import pytest
 
+from astroid.ai.cache import AIInferenceCache
+from astroid.ai.provider import NullAIInferenceProvider
 from astroid import manager, nodes, transforms
 
 
@@ -75,4 +77,14 @@ def brainless_manager():
     m._transform = transforms.TransformVisitor()
     m.extension_package_whitelist = set()
     m.module_denylist = set()
+    m.ai_inference_enabled = False
+    m.ai_provider = NullAIInferenceProvider()
+    m.ai_timeout_ms = 250
+    m.ai_max_candidates = 3
+    m.ai_budget_per_module = 0
+    m.ai_allowed_scenarios = frozenset()
+    m.ai_observer = None
+    m.ai_cache = AIInferenceCache()
+    m.ai_budget_counts = {}
+    m.ai_brains_registered = False
     return m
